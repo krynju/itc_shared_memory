@@ -13,77 +13,12 @@
 #include <iostream>
 
 #include <unistd.h>
-#include <semaphore.h>
 #include <unistd.h>
 #include <sstream>
 #include <cstdlib>
 
-class Queue {
-private:
-    unsigned int head;
-    unsigned int tail;
-    int buffer[10];
-    unsigned int size = 0;
-public:
-    Queue() {
-        head = 0;
-        tail = 0;
-    }
-
-    void enqueue(int element) {
-        if (isFull()) return;
-        buffer[head] = element;
-        ++size;
-        ++head;
-        if (head == 10) head = 0;
-    }
-
-    int dequeue() {
-        if (isEmpty()) return -1;
-        int a = buffer[tail];
-        ++tail;
-        --size;
-        if (tail == 10) tail = 0;
-        return a;
-    }
-
-    bool isFull() {
-        return size == 10;
-    }
-
-    bool isEmpty() {
-        return size == 0;
-    }
-
-    unsigned int getSize() {
-        return size;
-    }
-};
-
-class Semaphore {
-private:
-    sem_t sem;
-public:
-    Semaphore(int value) {
-        if (sem_init(&sem, 0, value) != 0)
-            throw "sem_init: failed";
-    }
-
-    ~Semaphore() {
-        sem_destroy(&sem);
-    }
-
-    void p() {
-        if (sem_wait(&sem) != 0)
-            throw "sem_wait: failed";
-    }
-
-    void v() {
-        if (sem_post(&sem) != 0)
-            throw "sem_post: failed";
-
-    }
-};
+#include "queue.h"
+#include "sema.h"
 
 class Condition {
     friend class Monitor;
@@ -119,12 +54,6 @@ private:
     }
 
     void leave() {
-#ifdef PRINT_1
-        std::stringstream ss;
-        ss << "Q0 = " << queues[0].getSize() << "\tQ1 = " << queues[1].getSize() << "\tQ2 = " << queues[2].getSize()
-           << "\tQ3 = " << queues[3].getSize() << "\tQ4 = " << queues[4].getSize() << std::endl;
-        std::cout << ss.str();
-#endif
         s.v();
     }
 
@@ -155,8 +84,13 @@ public:
             wait(fullness);
         }
         int q;
-        while(1){
-            int i = std::rand()%5;
+        bool checked[5] = {false, false, false, false, false};
+        while (1) {
+            int i = std::rand() % 5;
+            if (checked[i])
+                continue;
+            else
+                checked[i] = true;
             if (!queues[i].isFull()) {
                 queues[i].enqueue(element);
                 q = i;
@@ -164,10 +98,18 @@ public:
             }
         }
 
+#ifdef PRINT_1
+        std::stringstream ss;
+        ss << "| Q0= " << queues[0].getSize() << "\t| Q1= " << queues[1].getSize() << "\t| Q2= " << queues[2].getSize()
+           << "\t| Q3= " << queues[3].getSize() << "\t| Q4= " << queues[4].getSize() << "\t| put " << q << std::endl;
+        std::cout << ss.str();
+#endif
+
         overall_buffers_state += 1;
         if (queues[q].getSize() == 1) {
             signal(emptiness[q]);
         }
+
         leave();
         return q; //return queue number
     }
@@ -181,9 +123,17 @@ public:
 
         int ret = queues[queue_number].dequeue();
 
+#ifdef PRINT_1
+        std::stringstream ss;
+        ss << "| Q0= " << queues[0].getSize() << "\t| Q1= " << queues[1].getSize() << "\t| Q2= " << queues[2].getSize()
+           << "\t| Q3= " << queues[3].getSize() << "\t| Q4= " << queues[4].getSize() << "\t| get "<< queue_number <<std::endl;
+        std::cout << ss.str();
+#endif
+
         if (overall_buffers_state == 49) {
             signal(fullness);
         }
+
         leave();
         return ret;
     }

@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sstream>
 #include <cstdlib>
+#include <stdlib.h>
 
 
 Monitor monitor;
@@ -36,9 +37,9 @@ void *producer(void *producer_id) {
     pthread_exit(NULL);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     std::srand(time(0));
-    int producer_count = 5;
+    int producer_count = atol(argv[1]);
     pthread_t threads[5 + producer_count];
     for (long i = 0; i < 5; ++i) {
         pthread_create(&threads[i], NULL, consumer, (void *) i);
@@ -49,7 +50,6 @@ int main() {
         pthread_create(&threads[5 + i], NULL, producer, (void *) i);
         usleep(100000);
     }
-
 
     pthread_exit(NULL);
 }
