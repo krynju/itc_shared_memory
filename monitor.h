@@ -20,6 +20,9 @@
 #include "queue.h"
 #include "sema.h"
 
+#define MAX_OVERALL_CAPACITY 50
+#define MIN_OVERALL_CAPACITY 0
+
 class Condition {
     friend class Monitor;
 
@@ -80,7 +83,7 @@ public:
 
     int put(int element) {
         enter();
-        if (overall_buffers_state == 50) {
+        if (overall_buffers_state == MAX_OVERALL_CAPACITY) {
             wait(fullness);
         }
         int q;
@@ -100,13 +103,13 @@ public:
 
 #ifdef PRINT_1
         std::stringstream ss;
-        ss << "| Q0= " << queues[0].getSize() << "\t| Q1= " << queues[1].getSize() << "\t| Q2= " << queues[2].getSize()
-           << "\t| Q3= " << queues[3].getSize() << "\t| Q4= " << queues[4].getSize() << "\t| put " << q << std::endl;
+        ss << "|Q0= " << queues[0].getSize() << "\t|Q1= " << queues[1].getSize() << "\t|Q2= " << queues[2].getSize()
+           << "\t|Q3= " << queues[3].getSize() << "\t|Q4= " << queues[4].getSize() << "\t| put " << q << std::endl;
         std::cout << ss.str();
 #endif
 
         overall_buffers_state += 1;
-        if (queues[q].getSize() == 1) {
+        if (queues[q].getSize() == MIN_OVERALL_CAPACITY + 1) {
             signal(emptiness[q]);
         }
 
@@ -116,21 +119,21 @@ public:
 
     int get(int queue_number) {
         enter();
-        if (queues[queue_number].isEmpty()) {
+        if (queues[queue_number].isEmpty())
             wait(emptiness[queue_number]);
-        }
+
         overall_buffers_state -= 1;
 
         int ret = queues[queue_number].dequeue();
 
 #ifdef PRINT_1
         std::stringstream ss;
-        ss << "| Q0= " << queues[0].getSize() << "\t| Q1= " << queues[1].getSize() << "\t| Q2= " << queues[2].getSize()
-           << "\t| Q3= " << queues[3].getSize() << "\t| Q4= " << queues[4].getSize() << "\t| get "<< queue_number <<std::endl;
+        ss << "|Q0= " << queues[0].getSize() << "\t|Q1= " << queues[1].getSize() << "\t|Q2= " << queues[2].getSize()
+           << "\t|Q3= " << queues[3].getSize() << "\t|Q4= " << queues[4].getSize() << "\t| get "<< queue_number <<std::endl;
         std::cout << ss.str();
 #endif
 
-        if (overall_buffers_state == 49) {
+        if (overall_buffers_state == MAX_OVERALL_CAPACITY - 1) {
             signal(fullness);
         }
 

@@ -39,8 +39,12 @@ void *producer(void *producer_id) {
 
 int main(int argc, char *argv[]) {
     std::srand(time(0));
+
+    if(argc != 2) return -1;
     int producer_count = atol(argv[1]);
+
     pthread_t threads[5 + producer_count];
+
     for (long i = 0; i < 5; ++i) {
         pthread_create(&threads[i], NULL, consumer, (void *) i);
         usleep(100000);
